@@ -3,19 +3,26 @@ import subprocess
 import sys
 
 def check_dependencies():
+    print("Checking for dependencies...")
     dependencies = ['yt-dlp', 'ffmpeg']
     missing = []
 
     for dep in dependencies:
-        if subprocess.call(['which', dep], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT) != 0:
+        # Use 'which' for Linux/macOS and 'where' for Windows
+        command = 'where' if os.name == 'nt' else 'which'
+        
+        if subprocess.call([command, dep], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT) != 0:
             missing.append(dep)
     
     if missing:
         print(f"Missing dependencies: {', '.join(missing)}")
         print("Please install the missing dependencies and try again.")
         sys.exit(1)
+    else:
+        print("All dependencies are installed.")
 
-def download_video(url, format_type, resolution):
+def download_video(url, format_type, quality):
+    print("Preparing to download...")
     # Define the output directory
     output_dir = os.path.expanduser('~/Downloads/YouTube Videos')
     os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
@@ -23,9 +30,18 @@ def download_video(url, format_type, resolution):
     # Set the output file name
     if format_type == 'mp4':
         output_template = os.path.join(output_dir, '%(title)s.%(ext)s')
+        
+        # Choose format based on quality selection
+        if quality == 'best':
+            video_format = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
+        elif quality == 'good':
+            video_format = 'bestvideo[height<=720]+bestaudio/best[height<=720]'
+        else:  # Fine quality
+            video_format = 'bestvideo[height<=480]+bestaudio/best[height<=480]'
+
         command = [
             'yt-dlp',
-            '-f', f'bestvideo[height<={resolution}]+bestaudio/best[height<={resolution}]',
+            '-f', video_format,
             '--merge-output-format', 'mp4',
             '--embed-thumbnail',
             '-o', output_template,
@@ -63,29 +79,30 @@ def main():
     
     # Ask for format using numbered options
     print("Choose the format:")
-    print("[1] MP4")
-    print("[2] MP3")
-    format_choice = input("Enter the number corresponding to the format (1 or 2): ").strip()
+    print("[1] Best Quality Video (1080p)")
+    print("[2] Good Quality Video (720p)")
+    print("[3] Fine Quality Video (480p)")
+    print("[4] Best Audio (MP3)")
+    format_choice = input("Enter the number corresponding to the format (1, 2, 3, or 4): ").strip()
 
     if format_choice == '1':
         format_type = 'mp4'
+        quality = 'best'
     elif format_choice == '2':
+        format_type = 'mp4'
+        quality = 'good'
+    elif format_choice == '3':
+        format_type = 'mp4'
+        quality = 'fine'
+    elif format_choice == '4':
         format_type = 'mp3'
+        quality = 'best'
     else:
-        print("Invalid choice! Please enter '1' for MP4 or '2' for MP3.")
+        print("Invalid choice! Please enter '1', '2', '3', or '4'.")
         sys.exit(1)
 
-    # Ask for resolution or quality
-    if format_type == 'mp4':
-        resolution = input("Enter the desired resolution (e.g., 720, 1080): ").strip()
-        if not resolution.isdigit():
-            print("Invalid resolution! Please enter a number.")
-            sys.exit(1)
-    else:
-        resolution = input("Enter the desired audio quality (e.g., 128K, 192K): ").strip()
-
     # Call the download function
-    download_video(url, format_type, resolution)
+    download_video(url, format_type, quality)
 
 if __name__ == '__main__':
     main()
