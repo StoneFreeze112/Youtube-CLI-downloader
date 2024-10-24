@@ -26,23 +26,48 @@ Before running the script, ensure you have the following installed on your syste
 
 3. **FFmpeg**
    - This is required for audio and video processing. Install it based on your operating system:
-     - **Windows:**
-       1. Download the latest FFmpeg build from [ffmpeg.org](https://ffmpeg.org/download.html).
-       2. Extract the downloaded ZIP file.
-       3. Add the `bin` folder (which contains `ffmpeg.exe`) to your system's PATH:
-          - Right-click on "This PC" or "Computer," select "Properties."
-          - Click on "Advanced system settings."
-          - Click on "Environment Variables."
-          - Find the "Path" variable in the "System variables" section, select it, and click "Edit."
-          - Add the path to the `bin` folder of the extracted FFmpeg files.
-     - **Linux:**
-       ```bash
-       sudo apt install ffmpeg
-       ```
-     - **macOS:**
-       ```bash
-       brew install ffmpeg
-       ```
+
+### Linux Installation Instructions
+
+#### **Debian/Ubuntu**
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+#### **Fedora**
+```bash
+sudo dnf install ffmpeg
+```
+
+#### **CentOS/RHEL**
+1. Enable the EPEL repository:
+   ```bash
+   sudo yum install epel-release
+   ```
+2. Install FFmpeg:
+   ```bash
+   sudo yum install ffmpeg
+   ```
+
+#### **Arch Linux**
+```bash
+sudo pacman -S ffmpeg
+```
+
+#### **OpenSUSE**
+```bash
+sudo zypper install ffmpeg
+```
+
+#### **Linux Mint**
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+#### **Other Distributions**
+- For other Linux distributions, consult the documentation specific to your distribution on how to install FFmpeg. Most package managers should have it available.
 
 ## Running the Script
 
@@ -56,7 +81,7 @@ Before running the script, ensure you have the following installed on your syste
 3. **Navigate to the Script Location:**
    Use the `cd` command to change directories to where you saved `youtube_downloader.py`. For example:
    ```bash
-   cd path\to\your\script
+   cd path/to/your/script
    ```
 
 4. **Run the Script:**
@@ -86,4 +111,4 @@ This script is open-source and free to use. Feel free to modify and share it as 
 
 ---
 
-Feel free to customize any part of this README to better suit your preferences or add any additional information you think might be helpful!
+This version provides detailed installation instructions for `ffmpeg` tailored to various Linux distributions. Feel free to adjust any parts as needed!
