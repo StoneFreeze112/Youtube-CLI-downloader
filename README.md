@@ -1,6 +1,8 @@
+Here’s an updated version of your README with new information about using `aria2c` and an enhanced user guide for new users:
+
 # YouTube Downloader Script
 
-This script allows you to easily download videos and audio from YouTube in various formats. It utilizes `yt-dlp`, a powerful command-line tool, to fetch the content.
+This script allows you to easily download videos and audio from YouTube in various formats. It utilizes `yt-dlp`, a powerful command-line tool, to fetch the content, along with `aria2c` for enhanced download speed and stability.
 
 ## Features
 
@@ -9,6 +11,7 @@ This script allows you to easily download videos and audio from YouTube in vario
   - Good Quality (720p)
   - Fine Quality (480p)
 - Download audio in MP3 format automatically at the best quality.
+- Utilizes `aria2c` as an external downloader for faster downloads.
 - User-friendly prompts for easy interaction.
 
 ## Prerequisites
@@ -69,6 +72,25 @@ sudo apt install ffmpeg
 #### **Other Distributions**
 - For other Linux distributions, consult the documentation specific to your distribution on how to install FFmpeg. Most package managers should have it available.
 
+4. **aria2c**
+   - Download and install `aria2c` based on your operating system:
+
+### Windows Installation Instructions
+- **Using Chocolatey** (if installed):
+  ```bash
+  choco install aria2
+  ```
+- **Manual Installation**:
+  1. Download from the [aria2 releases page](https://github.com/aria2/aria2/releases).
+  2. Extract and add the folder containing `aria2c.exe` to your system’s PATH.
+
+### Linux Installation Instructions
+```bash
+sudo apt install aria2  # Debian/Ubuntu
+sudo dnf install aria2  # Fedora
+sudo yum install aria2  # CentOS/RHEL
+```
+
 ## Running the Script
 
 1. **Download the Script:**
@@ -98,12 +120,13 @@ sudo apt install ffmpeg
      - [3] Fine Quality Video (480p)
      - [4] Best Audio (MP3)
 
-The downloaded files will be saved in a folder named "YouTube Videos" in your Downloads directory.
+The downloaded files will be saved in a folder named "YouTube Videos" in your Downloads directory. Audio files will be saved in a separate folder named "YouTube Music."
 
 ## Troubleshooting
 
-- If the script exits with an error about missing dependencies, ensure that `yt-dlp` and `ffmpeg` are correctly installed and added to your PATH.
+- If the script exits with an error about missing dependencies, ensure that `yt-dlp`, `ffmpeg`, and `aria2c` are correctly installed and added to your PATH.
 - If you encounter any issues, double-check the YouTube link format and ensure your internet connection is stable.
+- Make sure to run the script in an environment that has permission to access the specified output directories.
 
 ## License
 
@@ -111,4 +134,4 @@ This script is open-source and free to use. Feel free to modify and share it as 
 
 ---
 
-This version provides detailed installation instructions for `ffmpeg` tailored to various Linux distributions. Feel free to adjust any parts as needed!
+This updated README includes detailed installation instructions for `aria2c` and clarifies the functionality related to audio and video downloads. If you need any further adjustments or additions, let me know!
