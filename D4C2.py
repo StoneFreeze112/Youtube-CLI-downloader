@@ -86,32 +86,12 @@ class MangaDownloader:
             logging.error(f"Error accessing {url}: {e}")
             return None
 
-    async def get_total_pages(self, session: aiohttp.ClientSession, manga_address: str, formatted_chapter_number: str) -> int:
+    async def get_total_pages(self, manga_address: str, chapter_number: str) -> int:
         # Implement logic to determine total pages for a given chapter.
         # This could involve scraping or parsing a specific URL that lists pages.
         
         # Placeholder logic (you need to replace this with actual logic)
-        # For example purposes only; implement your actual logic here.
-        
-        # Simulate getting total pages from a URL or API based on manga_address and formatted_chapter_number.
-        url = f"https://{manga_address}/manga/{self.formatted_manga_name}/{formatted_chapter_number}.html"
-        
-        try:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    html_content = await response.text()
-                    # Extract total pages from html_content using regex or any other method.
-                    # For example purposes only; replace with actual extraction logic.
-                    total_pages_pattern = re.compile(r'var totalPages\s*=\s*(\d+)')
-                    match = total_pages_pattern.search(html_content)
-                    if match:
-                        return int(match.group(1))
-                else:
-                    logging.error(f"Failed to retrieve total pages from {url}: HTTP {response.status}")
-                    return 0
-        except Exception as e:
-            logging.error(f"Error retrieving total pages from {url}: {e}")
-            return 0
+        return 10  # Replace with actual page count retrieval logic
 
     async def download_chapter_images(self, session: aiohttp.ClientSession, chapter_number: str) -> bool:
         formatted_chapter_number = self.format_chapter_number(chapter_number)
@@ -121,11 +101,9 @@ class MangaDownloader:
             chapter_folder = self.manga_folder / f"Chapter-{formatted_chapter_number}"
             chapter_folder.mkdir(parents=True, exist_ok=True)  # Ensure the chapter folder exists
             
-            # Get total number of pages before starting downloads
-            total_pages = await self.get_total_pages(session, manga_address, formatted_chapter_number)
+            total_pages = await self.get_total_pages(manga_address, formatted_chapter_number)
 
             png_number = 1
-            
             with Progress() as progress:
                 task = progress.add_task(f"[blue]Downloading Chapter {formatted_chapter_number}...", total=total_pages)
 
@@ -136,9 +114,10 @@ class MangaDownloader:
                     
                     if await self.download_image(session, url, image_path):
                         progress.update(task, advance=1)  # Update progress for each successful download
-                        png_number += 1
                     else:
                         break  # Stop if an image fails to download
+                    
+                    png_number += 1
             
             print("[green]Download complete![/green]")
             return png_number > 1
