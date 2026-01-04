@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
-import time
 import subprocess
 import shutil
 import json
 import platform
-import tempfile
-import glob
-import zipfile
-from urllib.request import urlopen, urlretrieve
 from urllib.parse import urlparse, parse_qs
 
 LOG_PATH = os.path.expanduser("~/Downloads/yt_incomplete.log")
@@ -30,15 +25,13 @@ def setup_yt_dlp():
             USE_MODULE = False
             print("✅ Using system yt-dlp executable.")
         else:
-            print("📦 yt-dlp not found. Installing via pip...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "yt-dlp"])
-            import yt_dlp
+            print("📦 yt-dlp not found. Installing...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
             USE_MODULE = True
-            print("✅ yt-dlp installed successfully.")
 
 
 # ==========================================================
-# Package manager detection (Linux)
+# Package manager detection
 # ==========================================================
 def get_package_manager():
     if shutil.which("apt"):
@@ -57,14 +50,11 @@ def get_aria2_path():
     if shutil.which("aria2c"):
         return shutil.which("aria2c")
 
-    print("📦 aria2c not found. Attempting install...")
     if platform.system() == "Linux":
         pm = get_package_manager()
         if pm:
             subprocess.check_call(pm + ["aria2"])
             return shutil.which("aria2c")
-
-    print("⚠️ aria2 unavailable. Continuing without it.")
     return None
 
 
@@ -75,31 +65,26 @@ def get_ffmpeg_path():
     if shutil.which("ffmpeg"):
         return shutil.which("ffmpeg")
 
-    print("📦 ffmpeg not found. Attempting install...")
     if platform.system() == "Linux":
         pm = get_package_manager()
         if pm:
             subprocess.check_call(pm + ["ffmpeg"])
             return shutil.which("ffmpeg")
 
-    print("❌ ffmpeg is required for audio extraction.")
-    return None
+    raise RuntimeError("❌ ffmpeg is REQUIRED for MP3 thumbnails.")
 
 
 # ==========================================================
-# URL input (yt-dlp does validation)
+# URL helpers
 # ==========================================================
 def get_youtube_url():
     while True:
-        url = input("🔗 Enter YouTube link (Ctrl+C to exit): ").strip()
+        url = input("🔗 Enter YouTube link: ").strip()
         if url and ("youtube.com" in url or "youtu.be" in url):
             return url
         print("❌ Invalid YouTube URL.")
 
 
-# ==========================================================
-# Playlist detection
-# ==========================================================
 def is_playlist(url):
     parsed = urlparse(url)
     return "list" in parse_qs(parsed.query)
@@ -110,29 +95,25 @@ def is_playlist(url):
 # ==========================================================
 def choose_format(is_playlist_flag):
     print("\n🎥 Choose download type:")
-    print("[1] Video 1080p (Best)")
-    print("[2] Video 720p (Good)")
-    print("[3] Video 480p (Fine)")
-    print("[4] Audio MP3")
+    print("[1] Video 1080p")
+    print("[2] Video 720p")
+    print("[3] Video 480p")
+    print("[4] Audio MP3 (with thumbnail)")
 
-    while True:
-        choice = input("🎯 Select (1–4): ").strip()
-        if choice in {"1", "2", "3", "4"}:
-            break
+    choice = input("🎯 Select (1–4): ").strip()
 
     if choice == "4":
-        download_playlist = False
+        playlist = False
         if is_playlist_flag:
-            print("[1] Single audio\n[2] Full playlist")
-            download_playlist = input("Choose: ").strip() == "2"
-        return "bestaudio", True, None, download_playlist
+            playlist = input("Download full playlist? (y/n): ").lower() == "y"
+        return "bestaudio", True, None, playlist
 
     resolution = {"1": "1080", "2": "720", "3": "480"}[choice]
     return f"bestvideo[height<={resolution}]+bestaudio/best", False, resolution, False
 
 
 # ==========================================================
-# Resume logging
+# Resume support
 # ==========================================================
 def log_unfinished(url, meta):
     with open(LOG_PATH, "w") as f:
@@ -143,9 +124,7 @@ def check_resume():
     if os.path.exists(LOG_PATH):
         with open(LOG_PATH) as f:
             data = json.load(f)
-        print("\n⚠️ Resume previous download?")
-        print(data["url"])
-        if input("(y/n): ").lower() == "y":
+        if input("⚠️ Resume previous download? (y/n): ").lower() == "y":
             return data
     return None
 
@@ -156,7 +135,7 @@ def clear_resume():
 
 
 # ==========================================================
-# Download
+# Download logic
 # ==========================================================
 def download_video(url, fmt, is_audio, resolution, playlist):
     video_dir = os.path.expanduser("~/Downloads/YouTube Videos")
@@ -173,6 +152,7 @@ def download_video(url, fmt, is_audio, resolution, playlist):
     try:
         if USE_MODULE:
             import yt_dlp
+
             opts = {
                 "format": fmt,
                 "outtmpl": outtmpl,
@@ -187,29 +167,48 @@ def download_video(url, fmt, is_audio, resolution, playlist):
                 opts["external_downloader_args"] = ["-x4", "-k1M"]
 
             if is_audio:
-                opts["postprocessors"] = [{
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3"
-                }]
-                opts["ffmpeg_location"] = ffmpeg
+                opts.update({
+                    "writethumbnail": True,
+                    "postprocessors": [
+                        {"key": "FFmpegExtractAudio", "preferredcodec": "mp3"},
+                        {"key": "EmbedThumbnail"},
+                        {"key": "FFmpegMetadata"},
+                    ],
+                    "postprocessor_args": {
+                        "EmbedThumbnail": [
+                            "-c:v", "mjpeg",
+                            "-metadata:s:v", "title=Album cover"
+                        ]
+                    },
+                    "ffmpeg_location": ffmpeg,
+                })
 
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
 
         else:
-            cmd = ["yt-dlp", "-f", fmt, "-o", outtmpl, "--continue", "--retries", "10"]
-            if playlist:
-                cmd.append("--yes-playlist")
-            else:
-                cmd.append("--no-playlist")
+            cmd = [
+                "yt-dlp", "-f", fmt,
+                "-o", outtmpl,
+                "--continue",
+                "--retries", "10",
+            ]
+
+            cmd += ["--yes-playlist" if playlist else "--no-playlist"]
 
             if aria2:
                 cmd += ["--external-downloader", "aria2c",
                         "--external-downloader-args", "-x4 -k1M"]
 
             if is_audio:
-                cmd += ["--extract-audio", "--audio-format", "mp3",
-                        "--ffmpeg-location", ffmpeg]
+                cmd += [
+                    "--extract-audio",
+                    "--audio-format", "mp3",
+                    "--embed-thumbnail",
+                    "--add-metadata",
+                    "--convert-thumbnails", "jpg",
+                    "--ffmpeg-location", ffmpeg
+                ]
 
             cmd.append(url)
             subprocess.check_call(cmd)
@@ -232,7 +231,7 @@ def download_video(url, fmt, is_audio, resolution, playlist):
 # ==========================================================
 def main():
     setup_yt_dlp()
-    print("\n🎬 YouTube Downloader (Smart Resume Edition)\n")
+    print("\n🎬 YouTube Downloader (MP3 + Thumbnail FIXED)\n")
 
     resume = check_resume()
     if resume:
